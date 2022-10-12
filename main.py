@@ -10,5 +10,19 @@
 """
 
 # Configuraciones
-import data, functions, visualizations
+import data, functions
 
+
+def estadistica_descriptiva(nombre : "Nombre del Trader"):
+    """
+    estadistica_descriptiva elabora la primera parte del laboratorio.
+    
+    """
+    
+    datos = data.f_leer_archivo("bitacora_operaciones", nombre)
+    datos = functions.f_columnas_tiempos(datos)
+    datos = functions.f_columnas_pips(datos)
+    
+    dic_estadisticas_ba = functions.f_estadisticas_ba(datos)
+
+    return datos, dic_estadisticas_ba
