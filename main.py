@@ -12,7 +12,6 @@
 # Configuraciones
 import data, functions
 
-
 def estadistica_descriptiva(nombre : "Nombre del Trader"):
     """
     estadistica_descriptiva elabora la primera parte del laboratorio.
@@ -26,3 +25,15 @@ def estadistica_descriptiva(nombre : "Nombre del Trader"):
     dic_estadisticas_ba = functions.f_estadisticas_ba(datos)
 
     return datos, dic_estadisticas_ba
+
+def metricas_atribucion_desempeño(historicoOperaciones):
+    """
+    metricas_atribucion_desempeño elabora la segunda parte del laboratorio.
+    
+    """
+    
+    evolucionCapital = functions.f_evolucion_capital(historicoOperaciones)
+    mad = functions.f_estadisticas_mad(evolucionCapital)
+
+    return evolucionCapital, mad
+

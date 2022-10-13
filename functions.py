@@ -115,3 +115,80 @@ def f_estadisticas_ba(param_data):
     dic_estadisticas_ba["df_2_ranking"] = rank
     
     return dic_estadisticas_ba
+
+def f_evolucion_capital(param_data):
+    """
+    f_evolucion_capital retorna el desempeño de la cuenta de trading durante los días operados.
+    
+    """
+    
+    param_data.sort_values(["closetime"], ascending = True, inplace = True)
+    param_data.reset_index(drop = True, inplace = True)
+    
+    beneficios = param_data.groupby([param_data["closetime"].dt.date])["profit"].sum()
+    evolucion_capital = pd.DataFrame(index = beneficios.index)
+    evolucion_capital.index.name = "timestamp"
+    evolucion_capital["profit_d"] = beneficios.values
+    evolucion_capital["profit_acm_d"] = 100000 + evolucion_capital["profit_d"].cumsum()
+    
+    return evolucion_capital
+    
+def f_estadisticas_mad(param_data):
+    """
+    f_estadisticas_mad retorna métricas de atribución al desempeño de la cuenta de trading durante los días operados.
+    
+    """
+    
+    # Ratio Sharpe
+    mad = pd.DataFrame(columns = ["Métrica", "Valor", "Descripción"])
+    
+    retornos = np.log(param_data["profit_acm_d"] / param_data["profit_acm_d"].shift(1)).dropna()
+    mad.loc[0, "Métrica"] = "sharpe_original"
+    mad.loc[0, "Valor"] = (retornos.mean() * 252 - 0.05) / (retornos.std() * np.sqrt(252))
+    mad.loc[0, "Descripción"] = "Sharpe Ratio Fórmula Original"
+    
+    benchmark = yf.download("^GSPC", progress = False, start = param_data.index[0], 
+                            end = param_data.index[-1] + dt.timedelta(1))["Adj Close"]
+    retornos_benchmark = np.log(benchmark / benchmark.shift(1)).dropna()
+    spread_retornos = retornos - retornos_benchmark
+    mad.loc[1, "Métrica"] = "sharpe_actualizado"
+    mad.loc[1, "Valor"] = ((retornos.mean() - retornos_benchmark.mean()) * 252) / (spread_retornos.std() * np.sqrt(252))
+    mad.loc[1, "Descripción"] = "Sharpe Ratio Fórmula Ajustada"
+    
+    # Drawdown
+    dd_f = np.argmax(np.maximum.accumulate(param_data["profit_acm_d"]) - param_data["profit_acm_d"]) 
+    dd_i = np.argmax(param_data["profit_acm_d"][:dd_f]) 
+    
+    mad.loc[2, "Métrica"] = "drawdown_capi"
+    mad.loc[2, "Valor"] = param_data.index[dd_i]
+    mad.loc[2, "Descripción"] = "Fecha inicial del DrawDown de Capital"
+    
+    mad.loc[3, "Métrica"] = "drawdown_capi"
+    mad.loc[3, "Valor"] = param_data.index[dd_f]
+    mad.loc[3, "Descripción"] = "Fecha final del DrawDown de Capital"
+    
+    mad.loc[4, "Métrica"] = "drawdown_capi"
+    mad.loc[4, "Valor"] = param_data.loc[param_data.index[dd_f], "profit_acm_d"] - param_data.loc[param_data.index[dd_i], 
+                                                                                                  "profit_acm_d"]
+    mad.loc[4, "Descripción"] = "Máxima pérdida flotante registrada"
+    
+    # Drawup
+    du_f = np.argmax(np.maximum.accumulate(param_data["profit_acm_d"]) + param_data["profit_acm_d"]) 
+    du_i = np.argmin(param_data["profit_acm_d"][:du_f]) 
+    
+    mad.loc[5, "Métrica"] = "drawup_capi"
+    mad.loc[5, "Valor"] = param_data.index[du_i]
+    mad.loc[5, "Descripción"] = "Fecha inicial del DrawUp de Capital"
+    
+    mad.loc[6, "Métrica"] = "drawup_capi"
+    mad.loc[6, "Valor"] = param_data.index[du_f]
+    mad.loc[6, "Descripción"] = "Fecha final del DrawUp de Capital"
+    
+    mad.loc[7, "Métrica"] = "drawup_capi"
+    mad.loc[7, "Valor"] = param_data.loc[param_data.index[du_f], "profit_acm_d"] - param_data.loc[param_data.index[du_i], 
+                                                                                                  "profit_acm_d"]
+    mad.loc[7, "Descripción"] = "Máxima ganancia flotante registrada"
+    
+    return mad
+    
+    
